@@ -2,7 +2,7 @@ package apidiff.internal.analysis.description;
 
 import java.util.List;
 
-import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.commons.text.StringEscapeUtils;
 import org.eclipse.jdt.core.dom.SimpleType;
 
 import apidiff.enums.Category;
