@@ -14,6 +14,7 @@ import org.eclipse.jgit.diff.DiffEntry.ChangeType;
 import org.eclipse.jgit.errors.IncorrectObjectTypeException;
 import org.eclipse.jgit.errors.MissingObjectException;
 import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
@@ -102,18 +103,28 @@ public class APIDiff implements DiffDetector{
 		GitService service = new GitServiceImpl();
 		Repository repository = service.openRepositoryAndCloneIfNotExists(this.path, this.nameProject, url);
 		List<Ref> releases = getReleaseCommits(repository);
-		releases.sort(Comparator.comparing(Ref::getName, VersionUtils::compare));
+//		releases.sort(Comparator.comparing(Ref::getName, VersionUtils::compare));
 		List<RevCommit> releaseCommits = toCommits(releases, repository);
-
-		Map<String, Result> results = new LinkedHashMap<>();
+		Map<String, RevCommit> releaseCommitMap = new LinkedHashMap<>();
 		for (int i = 0; i < releaseCommits.size(); i++) {
-			RevCommit release = releaseCommits.get(i);
-			Result resultByClassifier = diffCommit(this.path, release, repository, Classifier.API);
-			results.put(releases.get(i).getName().replace("refs/tags/", ""), resultByClassifier);
-//				result.getChangeType().addAll(resultByClassifier.getChangeType());
-//				result.getChangeMethod().addAll(resultByClassifier.getChangeMethod());
-//				result.getChangeField().addAll(resultByClassifier.getChangeField());
+			releaseCommitMap.put(releases.get(i).getName().replace("refs/tags/", ""), releaseCommits.get(i));
 		}
+		Map<String, Result> results = new LinkedHashMap<>();
+		releaseCommitMap.entrySet()
+			.stream()
+			.sorted(Map.Entry.comparingByValue(Comparator.comparing(revCommit -> revCommit.getAuthorIdent().getWhen())))
+			.forEach(entry -> {
+				RevCommit release = entry.getValue();
+				Result resultByClassifier = null;
+				try {
+					resultByClassifier = diffCommit(this.path, release, repository, Classifier.API);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				results.put(entry.getKey(), resultByClassifier);
+
+			});
+
 		return results;
 	}
 	
