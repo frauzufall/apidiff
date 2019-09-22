@@ -2,6 +2,7 @@ package apidiff.internal.analysis.description;
 
 import java.util.List;
 
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.eclipse.jdt.core.dom.SimpleType;
 
 import apidiff.enums.Category;
@@ -24,26 +25,26 @@ public class MethodDescription extends TemplateDescription {
 	
 	public String exception(final String nameMethodBefore, final List<SimpleType> listExceptionBefore, final List<SimpleType> listExceptionAfter, final String nameClassBefore){
 		String message = "";
-		message += "<br><code>" + nameMethodBefore +"</code>";
-		
+		message += "<br><code>" + StringEscapeUtils.escapeHtml4(nameClassBefore) + "</code>: ";
+		message += "<br><code>" +StringEscapeUtils.escapeHtml4(nameMethodBefore) + "</code>";
+
 		String listBefore = (listExceptionBefore == null || listExceptionBefore.isEmpty()) ? "" : listExceptionBefore.toString();
 		String listAfter = (listExceptionAfter == null || listExceptionAfter.isEmpty())? "" : listExceptionAfter.toString();
-		
+
 		if(!UtilTools.isNullOrEmpty(listBefore) && !UtilTools.isNullOrEmpty(listAfter)){
 			message += "<br>changed the list exception";
-			message += "<br>from <code>" + listBefore + "</code>";
-			message += "<br>to <code>" + listAfter + "</code>";
+			message += "<br>from <code>" +StringEscapeUtils.escapeHtml4(listBefore) + "</code>";
+			message += "<br>to <code>" +StringEscapeUtils.escapeHtml4(listAfter) + "</code>";
 		}
-		
+
 		if(UtilTools.isNullOrEmpty(listBefore) && !UtilTools.isNullOrEmpty(listAfter)){
 			message += "<br>added list exception " + listAfter + "</code>";
 		}
-		
+
 		if(!UtilTools.isNullOrEmpty(listBefore) && UtilTools.isNullOrEmpty(listAfter)){
 			message += "<br>removed list exception " + listBefore + "</code>";
 		}
 
-		message += "<br>in <code>" + nameClassBefore +"</code>";
 		message += "<br>";
 		return message;
 	}
@@ -109,9 +110,9 @@ public class MethodDescription extends TemplateDescription {
 	
 	public String extract(final String nameMethodBefore, final String nameMethodAfter, final String nameClass){
 		String message = "";
-		message += "<br>Method <code>" + nameMethodAfter +"</code>";
-		message += "<br>extracted from <code>" + nameMethodBefore +"</code>";
-		message += "<br>in <code>" + nameClass +"</code>";
+		message += "<br><code>" +StringEscapeUtils.escapeHtml4(nameClass) + "</code>: ";
+		message += "<br>Method <code>" +StringEscapeUtils.escapeHtml4(nameMethodAfter) + "</code>";
+		message += "<br>extracted from <code>" +StringEscapeUtils.escapeHtml4(nameMethodBefore) + "</code>";
 		message += "<br>";
 		return message;
 	}
@@ -130,10 +131,10 @@ public class MethodDescription extends TemplateDescription {
 	
 	public String inline(final String nameMethodBefore, final String nameMethodAfter,  final String nameClassBefore, final String nameClassAfter){
 		String message = "";
-		message += "<br>Method <code>" + nameMethodBefore +"</code>";
-		message += "<br>from <code>" + nameClassBefore +"</code>";
-		message += "<br>inlined to  <code>" + nameMethodAfter +"</code>";
-		message += "<br>in <code>" + nameClassAfter +"</code>";
+		message += "<br><code>" +StringEscapeUtils.escapeHtml4(nameClassAfter) + "</code>: ";
+		message += "<br>Method <code>" +StringEscapeUtils.escapeHtml4(nameMethodBefore) + "</code>";
+		message += "<br>from <code>" +StringEscapeUtils.escapeHtml4(nameClassBefore) + "</code>";
+		message += "<br>inlined to  <code>" +StringEscapeUtils.escapeHtml4(nameMethodAfter) + "</code>";
 		message += "<br>";
 		return message;
 	}

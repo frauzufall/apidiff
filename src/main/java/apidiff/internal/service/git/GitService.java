@@ -17,7 +17,9 @@ public interface GitService {
 	Map<ChangeType, List<GitFile>> fileTreeDiff(Repository repository, RevCommit commitNew) throws Exception;
 	
 	Integer countCommits(Repository repository, String branch) throws Exception ;
-	
+
+	Map<ChangeType, List<GitFile>> fileTreeDiff(Repository repository, RevCommit commitOld, RevCommit commitNew) throws Exception;
+
 	void checkout(Repository repository, String commitId) throws Exception;
 	
 	RevCommit createRevCommitByCommitId(final Repository repository, final String commitId) throws Exception;

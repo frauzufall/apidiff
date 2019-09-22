@@ -65,10 +65,11 @@ public class APIVersion {
 		}
 	}
 	
-	public APIVersion(final String nameProject, Classifier classifierAPI) {
+	public APIVersion(final String projectPath, final String nameProject, Classifier classifierAPI) {
 		try {
 			this.nameProject = nameProject;
 			this.classifierAPI = classifierAPI;
+			this.path = projectPath;
 			File path = new File(this.path + "/" + this.nameProject);
 			this.parseFilesInDir(path, true);
 		} catch (IOException e) {

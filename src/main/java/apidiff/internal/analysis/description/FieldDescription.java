@@ -1,6 +1,7 @@
 package apidiff.internal.analysis.description;
 
 import apidiff.enums.Category;
+import org.apache.commons.lang3.StringEscapeUtils;
 import refdiff.core.rm2.model.refactoring.SDRefactoring;
 
 public class FieldDescription extends TemplateDescription {
@@ -53,9 +54,9 @@ public class FieldDescription extends TemplateDescription {
 	
 	public String changeDefaultValue(final String nameField, final String nameClass){
 		String message = "";
-		message += "field <code>" + nameField + "<code>";
+		message += "<br><code>" + StringEscapeUtils.escapeHtml4(nameClass) + "</code>: ";
+		message += "field <code>" +StringEscapeUtils.escapeHtml4(nameField) + "</code>";
 		message += "<br>changed default value";
-		message += "<br>in <code>" + nameClass + "</code>";
 		message += "<br>";
 		return message;
 	}

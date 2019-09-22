@@ -249,7 +249,47 @@ public class GitServiceImpl implements GitService {
         }
         return mapDiff;
 	}
-	
+
+	@Override
+	public Map<ChangeType, List<GitFile>> fileTreeDiff(Repository repository, RevCommit commitOld, RevCommit commitNew) throws Exception {
+
+		Map<ChangeType, List<GitFile>> mapDiff = new HashMap<ChangeType, List<GitFile>>();
+		mapDiff.put(ChangeType.ADD, new ArrayList<>());
+		mapDiff.put(ChangeType.COPY, new ArrayList<>());
+		mapDiff.put(ChangeType.DELETE, new ArrayList<>());
+		mapDiff.put(ChangeType.MODIFY, new ArrayList<>());
+		mapDiff.put(ChangeType.RENAME, new ArrayList<>());
+
+		ObjectId headOld = commitOld.getTree(); //Commit pai no grafo.
+		ObjectId headNew = commitNew.getTree(); //Commit corrente.
+
+		// prepare the two iterators to compute the diff between
+		ObjectReader reader = repository.newObjectReader();
+
+		CanonicalTreeParser treeRepositoryOld = new CanonicalTreeParser();
+		treeRepositoryOld.reset(reader, headOld);
+
+		CanonicalTreeParser treeRepositoryNew = new CanonicalTreeParser();
+		treeRepositoryNew.reset(reader, headNew);
+
+		// finally get the list of changed files
+		List<DiffEntry> diffs = new Git(repository).diff()
+				.setNewTree(treeRepositoryNew)
+				.setOldTree(treeRepositoryOld)
+				.setShowNameAndStatusOnly(true)
+				.call();
+
+		for (DiffEntry entry : diffs) {
+			if(UtilTools.isJavaFile(entry.getOldPath()) || UtilTools.isJavaFile(entry.getNewPath())) {
+				String pathNew =  "/dev/null".equals(entry.getNewPath())?null:entry.getNewPath();
+				String pathOld =  "/dev/null".equals(entry.getOldPath())?null:entry.getOldPath();
+				GitFile file = new GitFile(pathOld, pathNew, entry.getChangeType());
+				mapDiff.get(entry.getChangeType()).add(file);
+			}
+		}
+		return mapDiff;
+	}
+
 	@Override
 	public void checkout(Repository repository, String commitId) throws Exception {
 	    this.logger.info("Checking out {} {} ...", repository.getDirectory().getParent().toString(), commitId);

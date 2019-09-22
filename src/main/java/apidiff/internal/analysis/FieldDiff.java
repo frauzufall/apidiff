@@ -37,7 +37,7 @@ public class FieldDiff {
 	private RevCommit revCommit;
 	
 	public List<Change> detectChange(final APIVersion version1, final APIVersion version2, final Map<RefactoringType, List<SDRefactoring>> refactorings, final RevCommit revCommit){
-		this.logger.info("Processing Filds...");
+		this.logger.info("Processing Fields...");
 		this.refactorings = refactorings;
 		this.revCommit = revCommit;
 		this.findDefaultValueFields(version1, version2);

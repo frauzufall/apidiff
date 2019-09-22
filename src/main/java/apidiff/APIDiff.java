@@ -1,18 +1,5 @@
 package apidiff;
 
-import java.io.File;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-
-import org.eclipse.jgit.diff.DiffEntry.ChangeType;
-import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.revwalk.RevWalk;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import apidiff.enums.Classifier;
 import apidiff.internal.analysis.DiffProcessor;
 import apidiff.internal.analysis.DiffProcessorImpl;
@@ -21,6 +8,30 @@ import apidiff.internal.service.git.GitService;
 import apidiff.internal.service.git.GitServiceImpl;
 import apidiff.internal.util.UtilTools;
 import apidiff.internal.visitor.APIVersion;
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.diff.DiffEntry.ChangeType;
+import org.eclipse.jgit.errors.IncorrectObjectTypeException;
+import org.eclipse.jgit.errors.MissingObjectException;
+import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.Ref;
+import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevObject;
+import org.eclipse.jgit.revwalk.RevWalk;
+import org.scijava.util.VersionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public class APIDiff implements DiffDetector{
 	
@@ -29,7 +40,9 @@ public class APIDiff implements DiffDetector{
 	private String path;
 	
 	private String url;
-	
+
+	private RevCommit lastCommit = null;
+
 	private Logger logger = LoggerFactory.getLogger(APIDiff.class);
 
 	public APIDiff(final String nameProject, final String url) {
@@ -82,6 +95,26 @@ public class APIDiff implements DiffDetector{
 		}
 		this.logger.info("Finished processing.");
 		return result;
+	}
+
+	@Override
+	public Map<String, Result> detectChangeAllReleases(String branch, List<Classifier> classifiers) throws Exception {
+		GitService service = new GitServiceImpl();
+		Repository repository = service.openRepositoryAndCloneIfNotExists(this.path, this.nameProject, url);
+		List<Ref> releases = getReleaseCommits(repository);
+		releases.sort(Comparator.comparing(Ref::getName, VersionUtils::compare));
+		List<RevCommit> releaseCommits = toCommits(releases, repository);
+
+		Map<String, Result> results = new LinkedHashMap<>();
+		for (int i = 0; i < releaseCommits.size(); i++) {
+			RevCommit release = releaseCommits.get(i);
+			Result resultByClassifier = diffCommit(this.path, release, repository, Classifier.API);
+			results.put(releases.get(i).getName().replace("refs/tags/", ""), resultByClassifier);
+//				result.getChangeType().addAll(resultByClassifier.getChangeType());
+//				result.getChangeMethod().addAll(resultByClassifier.getChangeMethod());
+//				result.getChangeField().addAll(resultByClassifier.getChangeField());
+		}
+		return results;
 	}
 	
 	@Override
@@ -154,6 +187,72 @@ public class APIDiff implements DiffDetector{
 		
 		service.checkout(repository, commit);
 		return new APIVersion(this.path, projectFolder, mapModifications, classifierAPI);
+	}
+
+	private List<RevCommit> toCommits(List<Ref> releases, Repository repository) {
+		List<RevCommit> res = new ArrayList<>();
+		for (Ref release : releases) {
+			res.add(getRevCommit(release, repository));
+		}
+		return res;
+	}
+
+	private static ObjectId getActualRefObjectId(Ref ref, Repository repo) {
+		final Ref repoPeeled = repo.peel(ref);
+		if(repoPeeled.getPeeledObjectId() != null) {
+			return repoPeeled.getPeeledObjectId();
+		}
+		return ref.getObjectId();
+	}
+
+	private static List<Ref> getReleaseCommits(Repository repository) throws MissingObjectException, IncorrectObjectTypeException, GitAPIException {
+		List<Ref> tagRefs = Git.wrap(repository).tagList().call();
+		for (Ref ref : tagRefs) {
+			System.out.println("Tag: " + ref + " " + ref.getName() + " " + ref.getObjectId().getName() + " " + getActualRefObjectId(ref, repository));
+		}
+		return tagRefs;
+	}
+
+	private Result diffCommit(String path, final RevCommit currentCommit, final Repository repository, Classifier classifierAPI) throws Exception{
+		if(lastCommit != null){
+			try {
+				APIVersion version1 = getAPIVersionByCommit(path, lastCommit.getName(), repository, classifierAPI);//old version
+				APIVersion version2 = getAPIVersionByCommit(path, currentCommit.getId().getName(), repository, classifierAPI); //new version
+				DiffProcessor diff = new DiffProcessorImpl();
+				lastCommit = currentCommit;
+				return diff.detectChange(version1, version2, repository, currentCommit);
+			} catch (Exception e) {
+				e.printStackTrace();
+				System.out.println("Error during checkout [commit=" + currentCommit + "]");
+			}
+		}
+		lastCommit = currentCommit;
+		return new Result();
+	}
+
+	private RevCommit getRevCommit(Ref ref, Repository repo) {
+		ObjectId revId = getActualRefObjectId(ref, repo);
+		try (RevWalk revWalk = new RevWalk(repo)) {
+			RevObject peeled = null;
+			try {
+				peeled = revWalk.peel(revWalk.parseAny(revId));
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			if (peeled instanceof RevCommit)
+				return (RevCommit) peeled;
+			else
+				return null;
+		}
+	}
+
+
+	private APIVersion getAPIVersionByCommit(String path, String commit, Repository repository, Classifier classifierAPI) throws Exception{
+
+		GitService service = new GitServiceImpl();
+
+		service.checkout(repository, commit);
+		return new APIVersion(path, this.nameProject, classifierAPI);
 	}
 
 }

@@ -1,6 +1,7 @@
 package apidiff;
 
 import java.util.List;
+import java.util.Map;
 
 import apidiff.enums.Classifier;
 
@@ -14,7 +15,7 @@ public interface DiffDetector {
 	 * @throws Exception - Exception during process
 	 */
 	public Result detectChangeAtCommit(String commitId, Classifier classifier) throws Exception;
-	
+
 	/**
 	 * Analyzing changes performed in several commits
 	 * @param branch - branch name (i.e., "master")
@@ -32,7 +33,9 @@ public interface DiffDetector {
 	 * @throws Exception - Exception during process
 	 */
 	public Result detectChangeAllHistory(String branch, Classifier classifier) throws Exception;
-	
+
+	Map<String, Result> detectChangeAllReleases(String branch, List<Classifier> classifiers) throws Exception;
+
 	/**
 	 * AAnalyzing changes performed in several commits
 	 * @param classifiers
